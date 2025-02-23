@@ -1,14 +1,11 @@
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  # Use Debian Bookworm as the base OS
   config.vm.box = "debian/bookworm64"
 
-  # Port forwarding to access Flask app from host machine
+  # Port forwarding to access Flask
   config.vm.network "forwarded_port", guest: 5000, host: 8082
 
-  # Upload the Flask app from host to VM before setting up the environment
+  # Upload the Flask app from host to VM
   config.vm.provision "file", source: "hello.py", destination: "/home/vagrant/hello.py"
 
   # Provisioning script to install Flask and dependencies
@@ -19,7 +16,7 @@ Vagrant.configure("2") do |config|
 
     # Set up a Python virtual environment if it doesn't exist
     if [ ! -d "/home/vagrant/flask_venv" ]; then
-      echo "🔧 Creating virtual environment..."
+      echo "Creating virtual environment..."
       python3 -m venv /home/vagrant/flask_venv
     fi
 
@@ -27,12 +24,12 @@ Vagrant.configure("2") do |config|
     echo "source /home/vagrant/flask_venv/bin/activate" >> /home/vagrant/.bashrc
 
     # Activate the virtual environment and install Flask
-    echo "🔧 Activating virtual environment and installing Flask..."
+    echo "Activating virtual environment and installing Flask..."
     source /home/vagrant/flask_venv/bin/activate
     pip install --upgrade pip
     pip install Flask
 
-    echo "✅ Virtual environment setup complete!"
+    echo "Virtual environment setup successful!"
 
   SHELL
 end
