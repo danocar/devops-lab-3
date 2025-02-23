@@ -1,47 +1,38 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
 Vagrant.configure("2") do |config|
+  # Use Debian Bookworm as the base OS
   config.vm.box = "debian/bookworm64"
 
-  # Forward Flask’s default port 5000 to host's port 8080
-  config.vm.network "forwarded_port", guest: 5000, host: 8080
+  # Port forwarding to access Flask app from host machine
+  config.vm.network "forwarded_port", guest: 5000, host: 8082
 
+  # Upload the Flask app from host to VM before setting up the environment
+  config.vm.provision "file", source: "hello.py", destination: "/home/vagrant/hello.py"
+
+  # Provisioning script to install Flask and dependencies
   config.vm.provision "shell", inline: <<-SHELL
     echo "🔧 Updating system packages..."
     sudo apt update
-    sudo apt install -y python3 python3-venv python3-pip
+    sudo apt install -y git nano vim python-is-python3 python3-venv python3-pip curl
 
-    # Set up virtual environment if it doesn't exist
+    # Set up a Python virtual environment if it doesn't exist
     if [ ! -d "/home/vagrant/flask_venv" ]; then
       echo "🔧 Creating virtual environment..."
       python3 -m venv /home/vagrant/flask_venv
     fi
 
-    # Activate virtual environment and install dependencies
+    # Ensure the virtual environment is always activated for the vagrant user
+    echo "source /home/vagrant/flask_venv/bin/activate" >> /home/vagrant/.bashrc
+
+    # Activate the virtual environment and install Flask
     echo "🔧 Activating virtual environment and installing Flask..."
     source /home/vagrant/flask_venv/bin/activate
-    /home/vagrant/flask_venv/bin/pip install --upgrade pip
-    /home/vagrant/flask_venv/bin/pip install Flask
+    pip install --upgrade pip
+    pip install Flask
 
-    # Ensure Flask runs automatically on startup
-    echo "🔧 Setting up systemd service for Flask..."
-    echo "[Unit]
-    Description=Flask Web Application
-    After=network.target
+    echo "✅ Virtual environment setup complete!"
 
-    [Service]
-    User=vagrant
-    WorkingDirectory=/home/vagrant
-    Environment=PATH=/home/vagrant/flask_venv/bin
-    ExecStart=/home/vagrant/flask_venv/bin/python /home/vagrant/hello.py
-
-    [Install]
-    WantedBy=multi-user.target" | sudo tee /etc/systemd/system/flask.service
-
-    # Reload systemd and start Flask
-    sudo systemctl daemon-reload
-    sudo systemctl enable flask
-    sudo systemctl restart flask
   SHELL
-
-  # Upload Flask application file
-  config.vm.provision "file", source: "hello.py", destination: "/home/vagrant/hello.py"
 end
